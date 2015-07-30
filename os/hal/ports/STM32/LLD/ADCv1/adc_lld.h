@@ -15,8 +15,8 @@
 */
 
 /**
- * @file    STM32F0xx/adc_lld.h
- * @brief   STM32F0xx ADC subsystem low level driver header.
+ * @file    STM32/LLD/ADCv1/adc_lld.h
+ * @brief   STM32 ADC subsystem low level driver header.
  *
  * @addtogroup ADC
  * @{
@@ -35,40 +35,66 @@
  * @name    Sampling rates
  * @{
  */
-#define ADC_SMPR_SMP_1P5        0   /**< @brief 14 cycles conversion time   */
-#define ADC_SMPR_SMP_7P5        1   /**< @brief 21 cycles conversion time.  */
-#define ADC_SMPR_SMP_13P5       2   /**< @brief 28 cycles conversion time.  */
-#define ADC_SMPR_SMP_28P5       3   /**< @brief 41 cycles conversion time.  */
-#define ADC_SMPR_SMP_41P5       4   /**< @brief 54 cycles conversion time.  */
-#define ADC_SMPR_SMP_55P5       5   /**< @brief 68 cycles conversion time.  */
-#define ADC_SMPR_SMP_71P5       6   /**< @brief 84 cycles conversion time.  */
-#define ADC_SMPR_SMP_239P5      7   /**< @brief 252 cycles conversion time. */
+#define ADC_SMPR_SMP_1P5        0U  /**< @brief 14 cycles conversion time   */
+#define ADC_SMPR_SMP_7P5        1U  /**< @brief 21 cycles conversion time.  */
+#define ADC_SMPR_SMP_13P5       2U  /**< @brief 28 cycles conversion time.  */
+#define ADC_SMPR_SMP_28P5       3U  /**< @brief 41 cycles conversion time.  */
+#define ADC_SMPR_SMP_41P5       4U  /**< @brief 54 cycles conversion time.  */
+#define ADC_SMPR_SMP_55P5       5U  /**< @brief 68 cycles conversion time.  */
+#define ADC_SMPR_SMP_71P5       6U  /**< @brief 84 cycles conversion time.  */
+#define ADC_SMPR_SMP_239P5      7U  /**< @brief 252 cycles conversion time. */
 /** @} */
 
 /**
  * @name    CFGR1 register configuration helpers
  * @{
  */
-#define ADC_CFGR1_RES_12BIT             (0 << 3)
-#define ADC_CFGR1_RES_10BIT             (1 << 3)
-#define ADC_CFGR1_RES_8BIT              (2 << 3)
-#define ADC_CFGR1_RES_6BIT              (3 << 3)
+#define ADC_CFGR1_RES_12BIT             (0U << 3U)
+#define ADC_CFGR1_RES_10BIT             (1U << 3U)
+#define ADC_CFGR1_RES_8BIT              (2U << 3U)
+#define ADC_CFGR1_RES_6BIT              (3U << 3U)
 
-#define ADC_CFGR1_EXTSEL_MASK           (15 << 6)
-#define ADC_CFGR1_EXTSEL_SRC(n)         ((n) << 6)
+#define ADC_CFGR1_EXTSEL_MASK           (15U << 6U)
+#define ADC_CFGR1_EXTSEL_SRC(n)         ((n) << 6U)
 
-#define ADC_CFGR1_EXTEN_MASK            (3 << 10)
-#define ADC_CFGR1_EXTEN_DISABLED        (0 << 10)
-#define ADC_CFGR1_EXTEN_RISING          (1 << 10)
-#define ADC_CFGR1_EXTEN_FALLING         (2 << 10)
-#define ADC_CFGR1_EXTEN_BOTH            (3 << 10)
+#define ADC_CFGR1_EXTEN_MASK            (3U << 10U)
+#define ADC_CFGR1_EXTEN_DISABLED        (0U << 10U)
+#define ADC_CFGR1_EXTEN_RISING          (1U << 10U)
+#define ADC_CFGR1_EXTEN_FALLING         (2U << 10U)
+#define ADC_CFGR1_EXTEN_BOTH            (3U << 10U)
+/** @} */
+
+/**
+ * @name    CFGR2 register configuration helpers
+ * @{
+ */
+#define STM32_ADC_CKMODE_MASK           (3U << 30U)
+#define STM32_ADC_CKMODE_ADCCLK         (0U << 30U)
+#define STM32_ADC_CKMODE_PCLK_DIV2      (1U << 30U)
+#define STM32_ADC_CKMODE_PCLK_DIV4      (2U << 30U)
+#define STM32_ADC_CKMODE_PCLK           (3U << 30U)
+
+#if (STM32_ADC_SUPPORTS_OVERSAMPLING == TRUE) || defined(__DOXYGEN__)
+#define ADC_CFGR2_OVSR_MASK             (7U << 2U)
+#define ADC_CFGR2_OVSR_2X               (0U << 2U)
+#define ADC_CFGR2_OVSR_4X               (1U << 2U)
+#define ADC_CFGR2_OVSR_8X               (2U << 2U)
+#define ADC_CFGR2_OVSR_16X              (3U << 2U)
+#define ADC_CFGR2_OVSR_32X              (4U << 2U)
+#define ADC_CFGR2_OVSR_64X              (5U << 2U)
+#define ADC_CFGR2_OVSR_128X             (6U << 2U)
+#define ADC_CFGR2_OVSR_256X             (7U << 2U)
+
+#define ADC_CFGR2_OVSS_MASK             (15 << 5U)
+#define ADC_CFGR2_OVSS_SHIFT(n)         ((n) << 5U)
+#endif
 /** @} */
 
 /**
  * @name    Threashold register initializer
  * @{
  */
-#define ADC_TR(low, high)               (((uint32_t)(high) << 16) |         \
+#define ADC_TR(low, high)               (((uint32_t)(high) << 16U) |        \
                                          (uint32_t)(low))
 /** @} */
 
@@ -90,6 +116,13 @@
 #endif
 
 /**
+ * @brief   ADC1 clock source selection.
+ */
+#if !defined(STM32_ADC_ADC1_CKMODE) || defined(__DOXYGEN__)
+#define STM32_ADC_ADC1_CKMODE               STM32_ADC_CKMODE_ADCCLK
+#endif
+
+/**
  * @brief   ADC1 DMA priority (0..3|lowest..highest).
  */
 #if !defined(STM32_ADC_ADC1_DMA_PRIORITY) || defined(__DOXYGEN__)
@@ -99,8 +132,8 @@
 /**
  * @brief   ADC interrupt priority level setting.
  */
-#if !defined(STM32_ADC_IRQ_PRIORITY) || defined(__DOXYGEN__)
-#define STM32_ADC_IRQ_PRIORITY              2
+#if !defined(STM32_ADC_ADC1_IRQ_PRIORITY) || defined(__DOXYGEN__)
+#define STM32_ADC_ADC1_IRQ_PRIORITY         2
 #endif
 
 /**
@@ -108,6 +141,17 @@
  */
 #if !defined(STM32_ADC_ADC1_DMA_IRQ_PRIORITY) || defined(__DOXYGEN__)
 #define STM32_ADC_ADC1_DMA_IRQ_PRIORITY     2
+#endif
+
+#if (STM32_ADC_SUPPORTS_PRESCALER == TRUE) || defined(__DOXYGEN__)
+/*
+ * @brief   ADC prescaler setting.
+ * @note    This setting has effect only in asynchronous clock mode (the
+ *          default, @p STM32_ADC_CKMODE_ADCCLK).
+ */
+#if !defined(STM32_ADC_PRESCALER_VALUE) || defined(__DOXYGEN__)
+#define STM32_ADC_PRESCALER_VALUE           1
+#endif
 #endif
 
 /** @} */
@@ -124,9 +168,11 @@
 #error "ADC driver activated but no ADC peripheral assigned"
 #endif
 
+#if STM32_ADC1_IRQ_SHARED_WITH_EXTI == FALSE
 #if STM32_ADC_USE_ADC1 &&                                                   \
-    !OSAL_IRQ_IS_VALID_PRIORITY(STM32_ADC_IRQ_PRIORITY)
+    !OSAL_IRQ_IS_VALID_PRIORITY(STM32_ADC_ADC1_IRQ_PRIORITY)
 #error "Invalid IRQ priority assigned to ADC1"
+#endif
 #endif
 
 #if STM32_ADC_USE_ADC1 &&                                                   \
@@ -137,6 +183,47 @@
 #if STM32_ADC_USE_ADC1 &&                                                   \
     !STM32_DMA_IS_VALID_PRIORITY(STM32_ADC_ADC1_DMA_PRIORITY)
 #error "Invalid DMA priority assigned to ADC1"
+#endif
+
+#if STM32_ADC_SUPPORTS_PRESCALER == TRUE
+#if STM32_ADC_PRESCALER_VALUE == 1
+#define STM32_ADC_PRESC                     0U
+#elif STM32_ADC_PRESCALER_VALUE == 2
+#define STM32_ADC_PRESC                     1U
+#elif STM32_ADC_PRESCALER_VALUE == 4
+#define STM32_ADC_PRESC                     2U
+#elif STM32_ADC_PRESCALER_VALUE == 6
+#define STM32_ADC_PRESC                     3U
+#elif STM32_ADC_PRESCALER_VALUE == 8
+#define STM32_ADC_PRESC                     4U
+#elif STM32_ADC_PRESCALER_VALUE == 10
+#define STM32_ADC_PRESC                     5U
+#elif STM32_ADC_PRESCALER_VALUE == 12
+#define STM32_ADC_PRESC                     6U
+#elif STM32_ADC_PRESCALER_VALUE == 16
+#define STM32_ADC_PRESC                     7U
+#elif STM32_ADC_PRESCALER_VALUE == 32
+#define STM32_ADC_PRESC                     8U
+#elif STM32_ADC_PRESCALER_VALUE == 64
+#define STM32_ADC_PRESC                     9U
+#elif STM32_ADC_PRESCALER_VALUE == 128
+#define STM32_ADC_PRESC                     10U
+#elif STM32_ADC_PRESCALER_VALUE == 256
+#define STM32_ADC_PRESC                     11U
+#else
+#error "Invalid value assigned to STM32_ADC_PRESCALER_VALUE"
+#endif
+#endif
+
+/* Check on the presence of the DMA streams settings in mcuconf.h.*/
+#if STM32_ADC_USE_ADC1 && !defined(STM32_ADC_ADC1_DMA_STREAM)
+#error "ADC DMA stream not defined"
+#endif
+
+/* Check on the validity of the assigned DMA channels.*/
+#if STM32_ADC_USE_ADC1 &&                                                   \
+    !STM32_DMA_IS_VALID_ID(STM32_ADC_ADC1_DMA_STREAM, STM32_ADC1_DMA_MSK)
+#error "invalid DMA stream associated to ADC1"
 #endif
 
 #if !defined(STM32_DMA_REQUIRED)
@@ -227,6 +314,14 @@ typedef struct {
    *          greater than one.
    */
   uint32_t                  cfgr1;
+#if (STM32_ADC_SUPPORTS_OVERSAMPLING == TRUE) || defined(__DOXYGEN__)
+  /**
+   * @brief   ADC CFGR2 register initialization data.
+   * @note    CKMODE bits must not be specified in this field and left to
+   *          zero.
+   */
+  uint32_t                  cfgr2;
+#endif
   /**
    * @brief   ADC TR register initialization data.
    */
@@ -312,8 +407,9 @@ struct ADCDriver {
 /**
  * @brief   Changes the value of the ADC CCR register.
  * @details Use this function in order to enable or disable the internal
- *          analog sources. See the documentation in the STM32F0xx Reference
+ *          analog sources. See the documentation in the STM32 Reference
  *          Manual.
+ * @note    PRESC bits must not be specified and left to zero.
  */
 #define adcSTM32SetCCR(ccr) (ADC->CCR = (ccr))
 
@@ -333,6 +429,7 @@ extern "C" {
   void adc_lld_stop(ADCDriver *adcp);
   void adc_lld_start_conversion(ADCDriver *adcp);
   void adc_lld_stop_conversion(ADCDriver *adcp);
+  void adc_lld_serve_interrupt(ADCDriver *adcp);
 #ifdef __cplusplus
 }
 #endif

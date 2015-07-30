@@ -15,7 +15,7 @@
 */
 
 /**
- * @file    STM32/ext_lld.h
+ * @file    STM32/EXTIv1/ext_lld.h
  * @brief   STM32 EXT subsystem low level driver header.
  *
  * @addtogroup EXT
@@ -27,6 +27,8 @@
 
 #if HAL_USE_EXT || defined(__DOXYGEN__)
 
+#include "ext_lld_isr.h"
+
 /*===========================================================================*/
 /* Driver constants.                                                         */
 /*===========================================================================*/
@@ -34,7 +36,7 @@
 /**
  * @brief   Available number of EXT channels.
  */
-#define EXT_MAX_CHANNELS    STM32_EXTI_NUM_CHANNELS
+#define EXT_MAX_CHANNELS    STM32_EXTI_NUM_LINES
 
 /**
  * @name    STM32-specific EXT channel modes

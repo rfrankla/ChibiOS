@@ -15,8 +15,8 @@
 */
 
 /**
- * @file    STM32F0xx/adc_lld.c
- * @brief   STM32F0xx ADC subsystem low level driver source.
+ * @file    STM32/LLD/ADCv1/adc_lld.c
+ * @brief   STM32 ADC subsystem low level driver source.
  *
  * @addtogroup ADC
  * @{
@@ -29,6 +29,9 @@
 /*===========================================================================*/
 /* Driver local definitions.                                                 */
 /*===========================================================================*/
+
+#define ADC1_DMA_CHANNEL                                                    \
+  STM32_DMA_GETCHANNEL(STM32_ADC_ADC1_DMA_STREAM, STM32_ADC1_DMA_CHN)
 
 /*===========================================================================*/
 /* Driver exported variables.                                                */
@@ -95,36 +98,21 @@ static void adc_lld_serve_rx_interrupt(ADCDriver *adcp, uint32_t flags) {
 /* Driver interrupt handlers.                                                */
 /*===========================================================================*/
 
-#if STM32_ADC_USE_ADC1 || defined(__DOXYGEN__)
+#if (STM32_ADC_USE_ADC1 && (STM32_ADC1_IRQ_SHARED_WITH_EXTI == FALSE)) ||   \
+    defined(__DOXYGEN__)
+#if !defined(STM32_ADC1_HANDLER)
+#error "STM32_ADC1_HANDLER not defined"
+#endif
 /**
  * @brief   ADC interrupt handler.
  *
  * @isr
  */
-OSAL_IRQ_HANDLER(Vector70) {
-  uint32_t isr;
+OSAL_IRQ_HANDLER(STM32_ADC1_HANDLER) {
 
   OSAL_IRQ_PROLOGUE();
 
-  isr = ADC1->ISR;
-  ADC1->ISR = isr;
-
-  /* It could be a spurious interrupt caused by overflows after DMA disabling,
-     just ignore it in this case.*/
-  if (ADCD1.grpp != NULL) {
-    /* Note, an overflow may occur after the conversion ended before the driver
-       is able to stop the ADC, this is why the DMA channel is checked too.*/
-    if ((isr & ADC_ISR_OVR) &&
-        (dmaStreamGetTransactionSize(ADCD1.dmastp) > 0)) {
-      /* ADC overflow condition, this could happen only if the DMA is unable
-         to read data fast enough.*/
-      _adc_isr_error_code(&ADCD1, ADC_ERR_OVERFLOW);
-    }
-    if (isr & ADC_ISR_AWD) {
-      /* Analog watchdog error.*/
-      _adc_isr_error_code(&ADCD1, ADC_ERR_AWD);
-    }
-  }
+  adc_lld_serve_interrupt(&ADCD1);
 
   OSAL_IRQ_EPILOGUE();
 }
@@ -145,22 +133,26 @@ void adc_lld_init(void) {
   /* Driver initialization.*/
   adcObjectInit(&ADCD1);
   ADCD1.adc = ADC1;
-  ADCD1.dmastp  = STM32_DMA1_STREAM1;
-  ADCD1.dmamode = STM32_DMA_CR_PL(STM32_ADC_ADC1_DMA_PRIORITY) |
+  ADCD1.dmastp  = STM32_DMA_STREAM(STM32_ADC_ADC1_DMA_STREAM);
+  ADCD1.dmamode = STM32_DMA_CR_CHSEL(ADC1_DMA_CHANNEL) |
+                  STM32_DMA_CR_PL(STM32_ADC_ADC1_DMA_PRIORITY) |
                   STM32_DMA_CR_DIR_P2M |
                   STM32_DMA_CR_MSIZE_HWORD | STM32_DMA_CR_PSIZE_HWORD |
                   STM32_DMA_CR_MINC        | STM32_DMA_CR_TCIE        |
                   STM32_DMA_CR_DMEIE       | STM32_DMA_CR_TEIE;
-#endif
 
+#if STM32_ADC1_IRQ_SHARED_WITH_EXTI == FALSE
   /* The shared vector is initialized on driver initialization and never
      disabled.*/
-  nvicEnableVector(12, STM32_ADC_IRQ_PRIORITY);
+  nvicEnableVector(12, STM32_ADC_ADC1_IRQ_PRIORITY);
+#endif
+#endif
 
   /* Calibration procedure.*/
   rccEnableADC1(FALSE);
   osalDbgAssert(ADC1->CR == 0, "invalid register state");
   ADC1->CR |= ADC_CR_ADCAL;
+  osalDbgAssert(ADC1->CR != 0, "invalid register state");
   while (ADC1->CR & ADC_CR_ADCAL)
     ;
   rccDisableADC1(FALSE);
@@ -187,16 +179,9 @@ void adc_lld_start(ADCDriver *adcp) {
       osalDbgAssert(!b, "stream already allocated");
       dmaStreamSetPeripheral(adcp->dmastp, &ADC1->DR);
       rccEnableADC1(FALSE);
-#if STM32_ADCSW == STM32_ADCSW_HSI14
-      /* Clock from HSI14, no need for jitter removal.*/
-      ADC1->CFGR2 = 0;
-#else
-#if STM32_ADCPRE == STM32_ADCPRE_DIV2
-      ADC1->CFGR2 = ADC_CFGR2_JITOFFDIV2;
-#else
-      ADC1->CFGR2 = ADC_CFGR2_JITOFFDIV4;
-#endif
-#endif
+
+      /* Clock settings.*/
+      adcp->adc->CFGR2 = STM32_ADC_ADC1_CKMODE;
     }
 #endif /* STM32_ADC_USE_ADC1 */
 
@@ -276,7 +261,15 @@ void adc_lld_start_conversion(ADCDriver *adcp) {
 
   /* ADC configuration and start.*/
   adcp->adc->CFGR1  = cfgr1;
-  adcp->adc->CR    |= ADC_CR_ADSTART;
+#if STM32_ADC_SUPPORTS_OVERSAMPLING == TRUE
+  {
+    uint32_t cfgr2 = adcp->adc->CFGR2 & STM32_ADC_CKMODE_MASK;
+    adcp->adc->CFGR2 = cfgr2 | grpp->cfgr2;
+  }
+#endif
+
+  /* ADC conversion start.*/
+  adcp->adc->CR |= ADC_CR_ADSTART;
 }
 
 /**
@@ -290,6 +283,37 @@ void adc_lld_stop_conversion(ADCDriver *adcp) {
 
   dmaStreamDisable(adcp->dmastp);
   adc_lld_stop_adc(adcp->adc);
+}
+
+/**
+ * @brief   ISR code.
+ *
+ * @param[in] adcp      pointer to the @p ADCDriver object
+ *
+ * @notapi
+ */
+void adc_lld_serve_interrupt(ADCDriver *adcp) {
+  uint32_t isr;
+
+  isr = adcp->adc->ISR;
+  adcp->adc->ISR = isr;
+
+  /* It could be a spurious interrupt caused by overflows after DMA disabling,
+     just ignore it in this case.*/
+  if (adcp->grpp != NULL) {
+    /* Note, an overflow may occur after the conversion ended before the driver
+       is able to stop the ADC, this is why the DMA channel is checked too.*/
+    if ((isr & ADC_ISR_OVR) &&
+        (dmaStreamGetTransactionSize(adcp->dmastp) > 0)) {
+      /* ADC overflow condition, this could happen only if the DMA is unable
+         to read data fast enough.*/
+      _adc_isr_error_code(adcp, ADC_ERR_OVERFLOW);
+    }
+    if (isr & ADC_ISR_AWD) {
+      /* Analog watchdog error.*/
+      _adc_isr_error_code(adcp, ADC_ERR_AWD);
+    }
+  }
 }
 
 #endif /* HAL_USE_ADC */

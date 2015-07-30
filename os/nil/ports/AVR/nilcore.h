@@ -123,15 +123,6 @@
 #if !defined(_FROM_ASM_)
 
 /**
- * @brief   Type of system time.
- */
-#if (NIL_CFG_ST_RESOLUTION == 32) || defined(__DOXYGEN__)
-typedef uint32_t systime_t;
-#else
-typedef uint16_t systime_t;
-#endif
-
-/**
  * @brief   Type of stack and memory alignment enforcement.
  */
 typedef uint8_t stkalign_t;
@@ -187,7 +178,7 @@ struct port_intctx {
     (tp)->ctxp->r3  = (int)pf >> 8;                                         \
     (tp)->ctxp->r4  = (int)arg;                                             \
     (tp)->ctxp->r5  = (int)arg >> 8;                                        \
-    (tp)->ctxp->pcx = (int)_port_thread_start >> 16;                        \
+    (tp)->ctxp->pcx = (int)0;                                               \
     (tp)->ctxp->pcl = (int)_port_thread_start >> 8;                         \
     (tp)->ctxp->pch = (int)_port_thread_start;                              \
 }
